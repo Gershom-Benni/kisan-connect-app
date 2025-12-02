@@ -21,7 +21,7 @@ export default function AccountScreen() {
           Name: <Text style={styles.detailValue}>{user?.name}</Text>
         </Text>
         <Text style={styles.detailText}>
-          Phone: <Text style={styles.detailValue}>{user?.phoneNumber}</Text>
+          Phone: <Text style={styles.detailValue}>{user?.phoneNumber}</Text> {/* REVERTED: Changed back to Phone */}
         </Text>
         <Text style={styles.detailText}>
           Center: <Text style={styles.detailValue}>{user?.centerName}</Text>

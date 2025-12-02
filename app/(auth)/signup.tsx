@@ -7,8 +7,6 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-// REVERTED: Import from 'firebase/auth' (JS SDK)
-import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import * as ImagePicker from "expo-image-picker";
 import { Link, useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
@@ -28,7 +26,7 @@ import {
 } from "react-native";
 import { uploadImageToCloudinary } from "../../utils/cloudinaryUploader";
 import { ThemedText } from "@/components/themed-text";
-import { auth, db } from "../../firebase/firebaseConfig"; // Get 'auth' from firebaseConfig
+import { db } from "../../firebase/firebaseConfig";
 import useAuthStore from "@/store/authStore";
 
 interface ChcCenter {
@@ -39,17 +37,17 @@ interface ChcCenter {
 export default function SignupScreen() {
   const [name, setName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
+  const [password, setPassword] = useState("");
   const [address, setAddress] = useState("");
   const [userImageUri, setUserImageUri] = useState<string | null>(null);
 
   const [chcCenters, setChcCenters] = useState<ChcCenter[]>([]);
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
-  const [selectedCenterName, setSelectedCenterName] = useState<string | null>(null);
+  const [selectedCenterName, setSelectedCenterName] = useState<string | null>(
+    null
+  );
   const [isCenterPickerVisible, setIsCenterPickerVisible] = useState(false);
   const [isFetchingCenters, setIsFetchingCenters] = useState(true);
-  
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const isLoading = useAuthStore((state) => state.isLoading);
   const login = useAuthStore((state) => state.login);
@@ -95,29 +93,28 @@ export default function SignupScreen() {
     }
   };
 
-  const handleSendOtp = async () => {
-    const sanitizedPhoneNumber = phoneNumber.replace(/\s/g, ''); 
-    const fullPhoneNumber = sanitizedPhoneNumber.startsWith('+') ? sanitizedPhoneNumber : '+91' + sanitizedPhoneNumber;
+  const handleSignup = async () => {
+    const loginPhoneNumber = phoneNumber.trim();
 
-    if (!name || !fullPhoneNumber || !address || !selectedCenterId) {
+    if (
+      !name ||
+      !loginPhoneNumber ||
+      !password ||
+      !address ||
+      !selectedCenterId
+    ) {
       Alert.alert(
         "Error",
-        "Please fill in all required fields (Name, Phone Number, Address) and select a CHC Center."
+        "Please fill in all required fields and select a CHC Center."
       );
-      return;
-    }
-    
-    if (!fullPhoneNumber.startsWith('+') || fullPhoneNumber.length < 10) {
-      Alert.alert("Error", "Please enter a valid phone number in E.164 format (e.g., +918754672089).");
       return;
     }
 
     useAuthStore.setState({ isLoading: true });
 
     try {
-      // 1. Check if user already exists in Firestore 
       const usersRef = collection(db, `chcCenters/${selectedCenterId}/users`);
-      const q = query(usersRef, where("phoneNumber", "==", fullPhoneNumber));
+      const q = query(usersRef, where("phoneNumber", "==", loginPhoneNumber));
       const existingUserSnapshot = await getDocs(q);
 
       if (!existingUserSnapshot.empty) {
@@ -127,83 +124,43 @@ export default function SignupScreen() {
         );
         return;
       }
-      
-      // 2. Prepare app verifier (uses reCAPTCHA for web/Expo Go)
-      const appVerifier = Platform.OS === 'web' ? (window as any).recaptchaVerifier : undefined;
 
-      const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
-      setConfirmationResult(result);
-      Alert.alert("Success", `OTP sent to ${fullPhoneNumber}. Please verify to complete sign up.`);
-
-    } catch (error) {
-      console.error("Error during OTP request:", error);
-      Alert.alert(
-        "OTP Request Failed",
-        "Could not send OTP. Check network & phone number format (+91...). If running in Expo Go, this may be due to the reCAPTCHA failing."
-      );
-    } finally {
-      useAuthStore.setState({ isLoading: false });
-    }
-  };
-  
-  const handleSignup = async () => {
-    if (!confirmationResult || !verificationCode) {
-      Alert.alert("Error", "Please enter the OTP.");
-      return;
-    }
-
-    useAuthStore.setState({ isLoading: true });
-    
-    try {
-      // 1. Verify OTP
-      const userCredential = await confirmationResult.confirm(verificationCode);
-      const firebaseUser = userCredential.user;
-      
-      // 2. Upload image and create user document in Firestore
       let userImageUrl = "";
       if (userImageUri) {
         userImageUrl = await uploadImageToCloudinary(userImageUri);
       }
-      
-      const usersRef = collection(db, `chcCenters/${selectedCenterId}/users`);
 
       const newUser = {
         name,
-        phoneNumber: firebaseUser.phoneNumber,
+        phoneNumber: loginPhoneNumber,
+        password: password,
         address,
         userImage: userImageUrl,
         createdAt: serverTimestamp(),
-        centerName: selectedCenterName || "", 
+        centerName: selectedCenterName || "",
       };
 
       const docRef = await addDoc(usersRef, newUser);
 
       const loggedInUser = {
-        uid: docRef.id, 
+        uid: docRef.id,
         name: newUser.name,
-        phoneNumber: newUser.phoneNumber!,
+        phoneNumber: newUser.phoneNumber,
         address: newUser.address,
         userImage: newUser.userImage,
         centerId: selectedCenterId!,
         centerName: newUser.centerName,
       };
 
-      login(loggedInUser as any); 
+      login(loggedInUser as any);
       router.replace("/(tabs)/dashboard");
       Alert.alert("Success", "Account created successfully!");
     } catch (error: any) {
-      console.error("Signup/OTP verification error:", error);
-      if (error.code === 'auth/invalid-verification-code') {
-        Alert.alert("Signup Failed", "The verification code is invalid or has expired.");
-      } else {
-        Alert.alert(
-          "Signup Error",
-          "An error occurred during signup. Please try again."
-        );
-      }
+      console.error("Signup error:", error);
+      let errorMessage =
+        "An error occurred during signup. Please check your network and try again.";
+      Alert.alert("Signup Failed", errorMessage);
     } finally {
-      setConfirmationResult(null);
-      setVerificationCode("");
       useAuthStore.setState({ isLoading: false });
     }
   };
@@ -252,12 +209,8 @@ export default function SignupScreen() {
       </View>
     </Modal>
   );
-  
-  const isOtpSent = !!confirmationResult;
-  const submitFunction = isOtpSent ? handleSignup : handleSendOtp;
-  const buttonText = isLoading
-    ? (isOtpSent ? "Verifying..." : "Sending OTP...")
-    : (isOtpSent ? "Verify OTP and Sign Up" : "Send OTP");
+
+  const buttonText = isLoading ? "Creating Account..." : "Sign Up";
 
   return (
     <KeyboardAvoidingView
@@ -278,7 +231,6 @@ export default function SignupScreen() {
           <TouchableOpacity
             onPress={pickImage}
             style={styles.profilePicContainer}
-            disabled={isOtpSent}
           >
             {userImageUri ? (
               <Image source={{ uri: userImageUri }} style={styles.profilePic} />
@@ -292,7 +244,7 @@ export default function SignupScreen() {
           <TouchableOpacity
             style={styles.inputContainer}
             onPress={() => setIsCenterPickerVisible(true)}
-            disabled={isFetchingCenters || isOtpSent}
+            disabled={isFetchingCenters}
           >
             <Text
               style={[
@@ -313,29 +265,26 @@ export default function SignupScreen() {
             value={name}
             onChangeText={setName}
             autoCorrect={false}
-            editable={!isOtpSent}
           />
-          
+
           <TextInput
             style={styles.input}
-            placeholder="Phone Number (Required - E.164 format, e.g., +918754672089)"
+            placeholder="Phone Number (Required)"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
             autoCapitalize="none"
             autoCorrect={false}
-            editable={!isOtpSent}
           />
-          
-          {isOtpSent && (
-            <TextInput
-              style={styles.input}
-              placeholder="Enter OTP"
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              keyboardType="number-pad"
-            />
-          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Password (Required)"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={true}
+            autoCapitalize="none"
+          />
 
           <TextInput
             style={styles.input}
@@ -343,12 +292,11 @@ export default function SignupScreen() {
             value={address}
             onChangeText={setAddress}
             autoCorrect={false}
-            editable={!isOtpSent}
           />
 
           <Text
             style={[styles.button, isLoading && styles.disabledButton]}
-            onPress={!isLoading ? submitFunction : () => {}}
+            onPress={!isLoading ? handleSignup : () => {}}
           >
             {buttonText}
           </Text>
@@ -359,7 +307,6 @@ export default function SignupScreen() {
         </View>
       </ScrollView>
       <CenterPicker />
-      {Platform.OS === 'web' && <View id="recaptcha-container" />}
     </KeyboardAvoidingView>
   );
 }

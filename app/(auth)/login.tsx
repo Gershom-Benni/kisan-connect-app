@@ -1,92 +1,48 @@
 // app/(auth)/login.tsx
-import {
-  collectionGroup,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-// REVERTED: Import from 'firebase/auth' (JS SDK)
-import { getAuth, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth'; 
+import { collectionGroup, getDocs, query, where } from "firebase/firestore";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Text, Image, Alert, Platform } from "react-native";
+import { StyleSheet, View, TextInput, Text, Image, Alert } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { auth, db } from "../../firebase/firebaseConfig"; // Get 'auth' from firebaseConfig
+import { db } from "../../firebase/firebaseConfig";
 import useAuthStore from "@/store/authStore";
 
 export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [password, setPassword] = useState("");
+
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
   const router = useRouter();
 
-  // Step 1: Send OTP
-  const handleSendOtp = async () => {
-    // Sanitize and format phone number to E.164 format (+[country code][number])
-    const sanitizedPhoneNumber = phoneNumber.replace(/\s/g, ''); 
-    const fullPhoneNumber = sanitizedPhoneNumber.startsWith('+') ? sanitizedPhoneNumber : '+91' + sanitizedPhoneNumber;
+  const handleLogin = async () => {
+    const loginPhoneNumber = phoneNumber.trim();
 
-    if (!fullPhoneNumber.startsWith('+') || fullPhoneNumber.length < 10) {
-      Alert.alert("Error", "Please enter a valid phone number in E.164 format (e.g., +918754672089).");
+    if (!loginPhoneNumber || !password) {
+      Alert.alert("Error", "Please enter both phone number and password.");
       return;
     }
 
     useAuthStore.setState({ isLoading: true });
+
     try {
-      // 1. Check if user exists in Firestore 
       const usersRef = collectionGroup(db, "users");
-      const q = query(usersRef, where("phoneNumber", "==", fullPhoneNumber));
+      const q = query(usersRef, where("phoneNumber", "==", loginPhoneNumber));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        Alert.alert(
-          "Login Failed",
-          "No existing account found with this phone number. Please sign up."
-        );
+        Alert.alert("Login Failed", "Invalid phone number or password.");
         return;
       }
-      
-      // 2. Prepare app verifier (uses reCAPTCHA for web/Expo Go)
-      const appVerifier = Platform.OS === 'web' ? (window as any).recaptchaVerifier : undefined; 
-      
-      const result = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
-      setConfirmationResult(result);
-      Alert.alert("Success", `OTP sent to ${fullPhoneNumber}`);
-    } catch (error) {
-      console.error("Error during OTP request:", error);
-      Alert.alert(
-        "OTP Request Failed",
-        "Could not send OTP. Check network & phone number format (+91...). If running in Expo Go, this may be due to the reCAPTCHA failing."
-      );
-    } finally {
-      useAuthStore.setState({ isLoading: false });
-    }
-  };
-
-
-  // Step 2: Verify OTP and Log In
-  const handleLogin = async () => {
-    if (!confirmationResult || !verificationCode) {
-      Alert.alert("Error", "Please enter the OTP.");
-      return;
-    }
-
-    useAuthStore.setState({ isLoading: true });
-
-    try {
-      // 1. Verify OTP with Firebase Auth
-      const userCredential = await confirmationResult.confirm(verificationCode);
-      const firebaseUser = userCredential.user;
-
-      // 2. Fetch user data from Firestore
-      const usersRef = collectionGroup(db, "users");
-      const q = query(usersRef, where("phoneNumber", "==", firebaseUser.phoneNumber));
-      const querySnapshot = await getDocs(q);
 
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
+
+      if (userData.password !== password) {
+        Alert.alert("Login Failed", "Invalid phone number or password.");
+        return;
+      }
+
       const centerId = userDoc.ref.parent.parent?.id || "unknown";
 
       const user = {
@@ -96,34 +52,23 @@ export default function LoginScreen() {
         address: userData.address,
         userImage: userData.userImage,
         centerId: centerId,
-        centerName: userData.centerName || `Center ID: ${centerId}`, 
+        centerName: userData.centerName || `Center ID: ${centerId}`,
       };
 
-      login(user as any); 
+      login(user as any);
       router.replace("/(tabs)/Dashboard");
     } catch (error: any) {
-      console.error("Login/OTP verification error:", error);
-      if (error.code === 'auth/invalid-verification-code') {
-        Alert.alert("Login Failed", "The verification code is invalid or has expired.");
-      } else {
-        Alert.alert(
-          "Login Error",
-          "An error occurred during login. Please try again."
-        );
-      }
+      console.error("Login Error:", error);
+      Alert.alert(
+        "Login Failed",
+        "An error occurred during login. Please check your network."
+      );
     } finally {
-      setConfirmationResult(null); // Reset confirmation state on success/failure
-      setVerificationCode("");
       useAuthStore.setState({ isLoading: false });
     }
   };
 
-  const isOtpSent = !!confirmationResult;
-  const submitFunction = isOtpSent ? handleLogin : handleSendOtp;
-  const buttonText = isLoading
-    ? (isOtpSent ? "Verifying..." : "Sending OTP...")
-    : (isOtpSent ? "Verify OTP and Log In" : "Send OTP");
-
+  const buttonText = isLoading ? "Logging In..." : "Log In";
 
   return (
     <View style={styles.container}>
@@ -132,35 +77,32 @@ export default function LoginScreen() {
         style={styles.logo}
         resizeMode="contain"
       />
-      
+
       <ThemedText type="title" style={styles.title}>
         Login
       </ThemedText>
 
       <TextInput
         style={styles.input}
-        placeholder="Phone Number (E.164 format, e.g., +918754672089)"
+        placeholder="Phone Number"
         value={phoneNumber}
         onChangeText={setPhoneNumber}
         keyboardType="phone-pad"
         autoCapitalize="none"
-        editable={!isOtpSent}
       />
 
-      {isOtpSent && ( 
-        <TextInput
-          style={styles.input}
-          placeholder="Enter OTP"
-          value={verificationCode}
-          onChangeText={setVerificationCode}
-          keyboardType="number-pad"
-          secureTextEntry={false}
-        />
-      )}
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={true}
+        autoCapitalize="none"
+      />
 
       <Text
         style={[styles.button, isLoading && styles.disabledButton]}
-        onPress={!isLoading ? submitFunction : () => {}}
+        onPress={!isLoading ? handleLogin : () => {}}
       >
         {buttonText}
       </Text>
@@ -168,8 +110,6 @@ export default function LoginScreen() {
       <Link href="/signup" style={styles.link}>
         <ThemedText type="link">New user? Sign up now</ThemedText>
       </Link>
-      
-      {Platform.OS === 'web' && <View id="recaptcha-container" />} 
     </View>
   );
 }

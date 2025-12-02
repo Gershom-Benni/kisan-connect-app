@@ -8,7 +8,6 @@ import { Stack, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import React, { useEffect } from "react";
-import { setupRecaptcha } from "@/utils/recaptcha-setup";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import useAuthStore from "@/store/authStore";
 SplashScreen.preventAutoHideAsync();
@@ -19,7 +18,6 @@ function InitialLoadGate() {
 
   useEffect(() => {
     hydrate();
-    setupRecaptcha();
   }, [hydrate]);
 
   useEffect(() => {
