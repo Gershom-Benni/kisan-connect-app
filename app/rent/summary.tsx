@@ -16,7 +16,9 @@ import { Picker } from "@react-native-picker/picker";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import useAuthStore from "@/store/authStore";
 import { db } from "../../firebase/firebaseConfig";
-
+const generateOtp = () => {
+  return Math.floor(1000 + Math.random() * 9000).toString(); // Generates a 4-digit OTP
+};
 export default function RentSummaryScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function RentSummaryScreen() {
 
   const dailyRate = parseInt(equipmentRent || "0", 10);
 
-  const [selectedHours, setSelectedHours] = useState("8");
+  const [selectedHours, setSelectedHours] = useState("2");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const estimatedCost = useMemo(() => {
@@ -86,12 +88,12 @@ export default function RentSummaryScreen() {
     try {
       const ordersRef = collection(db, `chcCenters/${user.centerId}/orders`);
       const hours = parseInt(selectedHours, 10);
-
+const deliveryOtp = generateOtp();
       const newOrder = {
         equipmentId: equipmentId,
         equipmentName: equipmentName,
         equipmentRent: dailyRate,
-
+deliveryOtp: deliveryOtp,
         userId: user.uid,
         userName: user.name,
 

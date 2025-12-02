@@ -13,36 +13,6 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 
 interface Order {
     id: string;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
     equipmentName: string;
     bookingHrs: number; 
     estimatedCost: number;

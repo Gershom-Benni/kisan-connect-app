@@ -30,6 +30,7 @@ interface Order {
   chcId: string;
   allocatedStartTime?: Date | null;
   allocatedEndTime?: Date | null;
+  deliveryOtp?: string;
 }
 
 const formatTime = (time: Date | Timestamp | null | undefined): string => {
@@ -102,6 +103,7 @@ export default function OrderDetailsScreen() {
             allocatedEndTime: data.allocatedEndTime
               ? data.allocatedEndTime.toDate()
               : null,
+              deliveryOtp: data.deliveryOtp || undefined,
           };
 
           console.log("Fetched order:", fetchedOrder);
@@ -239,7 +241,13 @@ export default function OrderDetailsScreen() {
             <Text style={styles.costValue}>₹{order.estimatedCost}</Text>
           </View>
         </View>
-
+            {order.deliveryOtp && (
+              <View style={styles.otpRow}>
+                <IconSymbol name="lock.shield.fill" size={18} color="#FF9500" />
+                <Text style={styles.otpLabel}>Delivery Verification OTP:</Text>
+                <Text style={styles.otpValue}>{order.deliveryOtp}</Text>
+              </View>
+          )}
         <View style={styles.detailsCard}>
           <Text style={styles.sectionTitle}>Details</Text>
           {(isAllocated || isDelivered || isReturned) &&
@@ -313,6 +321,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E7DEAF",
+  },
+  otpRow: { 
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#007E6E',
+    alignItems: 'center',
+  },
+  otpLabel: { 
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '700',
+    marginLeft: 10,
+  },
+  otpValue: { 
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FF9500',
+    textAlign: 'right',
+    flex: 1,
   },
   centeredContainer: {
     flex: 1,
