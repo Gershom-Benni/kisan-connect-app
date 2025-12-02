@@ -1,0 +1,30 @@
+# --- ESSENTIAL IGNORES ---
+# Ignore common Node.js and dependencies
+/node_modules
+.expo/
+.git/
+.gradle/
+.idea/
+.vscode/
+
+# Ignore Android/iOS build artifacts (these are recreated in the cloud)
+/android/build
+/android/app/build
+/ios/build
+
+# --- WINDOWS/SYSTEM TEMPORARY FILE IGNORES (THE FIX) ---
+# Ignore all temporary/log/cache files
+*.log
+*.tmp
+*.temp
+*.bak
+Thumbs.db
+
+# Explicitly ignore common Windows system directories
+# The build tool is incorrectly reading files from C:\Users\gershom benni\AppData
+# These aggressive excludes should prevent that.
+AppData/
+$RECYCLE.BIN
+Library/
+tmp/
+temp/

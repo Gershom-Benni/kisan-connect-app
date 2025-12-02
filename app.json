@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "kisan-connect-farmers-app",
+    "slug": "kisan-connect-farmers-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/kisan-connect-logo.png",
+    "scheme": "kisanconnectfarmersapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.gershombenni.kisanconnectfarmersapp",
+      "googleServicesFile": "./android/app/google-services.json"
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0898f867-fdb3-4f82-a797-bb2a55368132"
+      }
+    }
+  }
+}
