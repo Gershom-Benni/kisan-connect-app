@@ -3,7 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import React, { useState, useRef, useEffect } from "react";
 import { 
     StyleSheet, View, Text, TextInput, ScrollView, 
-    TouchableOpacity, ActivityIndicator, Platform, Alert, Image, Animated, Easing
+    TouchableOpacity, ActivityIndicator, Platform, Alert, Animated, Easing
 } from "react-native";
 import { IconSymbol } from "../../components/ui/icon-symbol"; 
 import useAuthStore from "../../store/authStore"; 
@@ -11,6 +11,7 @@ import { executeBookingAction } from "../../utils/bookingUtils";
 import { ThemedText } from "../../components/themed-text"; 
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig"; 
+import Ionicons from "@expo/vector-icons/build/Ionicons";
 
 const GEMINI_API_KEY = "AIzaSyClS_Ondis5NJeSLECxUv1HbJADZD_rQkU";
 const GEMINI_MODEL = "gemini-2.0-flash";
@@ -231,11 +232,7 @@ const AnimatedWave = ({ isListening }: WaveProps) => {
                 ]}
             />
             <View style={waveStyles.logoContainer}>
-                <Image
-                    source={require("../../assets/images/kisan-connect-logo.png")} 
-                    style={waveStyles.logo}
-                    resizeMode="contain"
-                />
+                <Ionicons name="chatbox-ellipses" size={26} color={"white"} />
             </View>
         </View>
     );
@@ -433,12 +430,12 @@ export default function VoiceAssistantScreen() {
                     <IconSymbol 
                         name={isListening ? "waveform.circle.fill" : "mic.fill"} 
                         size={24} 
-                        color="white" 
+                        color="#fff" 
                     />
                 </TouchableOpacity>
                 <TextInput
                     style={styles.input}
-                    placeholder="Type your command here (e.g. 'book tractor for 4 hours')..."
+                    placeholder="Type your command here ..."
                     placeholderTextColor="#999"
                     value={inputText}
                     onChangeText={setInputText}
@@ -450,7 +447,7 @@ export default function VoiceAssistantScreen() {
                     onPress={handleSendMessage}
                     disabled={isProcessing || !inputText}
                 >
-                    <IconSymbol name="arrow.up.circle.fill" size={24} color="white" />
+                    <IconSymbol name="arrow.up.circle.fill" size={24} color="#000" />
                 </TouchableOpacity>
             </View>
         </View>

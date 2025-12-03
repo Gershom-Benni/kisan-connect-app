@@ -60,6 +60,16 @@ export default function TabLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="voice-assistant"
+        options={{
+          title: "AI Chat",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbox-ellipses" size={26} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen name="equipment/[id]" options={{ href: null }} />
     </Tabs>
   );
