@@ -32,7 +32,35 @@ const NUM_COLUMNS = 2;
 const CARD_MARGIN = 8;
 const screenWidth = Dimensions.get("window").width;
 const CARD_WIDTH = screenWidth / NUM_COLUMNS - CARD_MARGIN * 3;
+export const getEquipmentForBot = async (centerId: string): Promise<Equipment[]> => {
+    if (!centerId) {
+        return [];
+    }
 
+    try {
+        const equipmentRef = collection(
+            db,
+            `chcCenters/${centerId}/equipment`
+        );
+        const snapshot = await getDocs(equipmentRef);
+
+        const equipment: Equipment[] = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name || "Unnamed Equipment",
+                images: Array.isArray(data.images) ? data.images : [],
+                rent: data.rent || 0,
+                description: data.description,
+                locationDetails: data.locationDetails,
+            };
+        });
+        return equipment;
+    } catch (error) {
+        console.error("Failed to fetch equipment for bot:", error);
+        return [];
+    }
+};
 const EquipmentCard = React.memo(
   ({ item, router }: { item: Equipment; router: any }) => (
     <TouchableOpacity
@@ -76,7 +104,7 @@ export default function Dashboard() {
       setIsLoading(false);
       return;
     }
-
+ const equipment = await getEquipmentForBot(user.centerId);
     setIsLoading(true);
     try {
       const equipmentRef = collection(
